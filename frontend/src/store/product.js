@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { updateProduct } from "../../../backend/controllers/productController";
+import axios from "axios";
 
 export const useProductStore = create((set) => ({
   products: [],
@@ -10,98 +11,95 @@ export const useProductStore = create((set) => ({
     }
 
     try {
-      const res = await fetch("http://localhost:5000/api/products/create", {
-        method: "POST",
-        body: JSON.stringify(newProduct),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await axios.post(
+        "http://localhost:8000/api/products/create",
+        newProduct
+      );
 
-      // Check if the response is ok
-      if (!res.ok) {
-        const errorData = await res.json();
-        return {
-          success: false,
-          message: errorData.message || "Failed to create product",
-        };
+      const result = response.data
+
+      if (result.success) {
+        set((state) => ({ products: [...state.products, result.data] }));
+        console.log("New product added:", result.data);
+        return { success: true, message: "Product created successfully" };
+      } else {
+        return { sucess: false, message: "Failed to create product" };
       }
-
-      const data = await res.json();
-      console.log("Fetched products:", data);
-      set((state) => ({ products: [...state.products, data.data] }));
-      console.log("New product added:", data.data);
-      return { success: true, message: "Product created successfully" };
     } catch (error) {
       console.error("Error:", error);
       return { success: false, message: "Network error" };
     }
-    
   },
 
   fetchProducts: async () => {
-
     try {
-      const response = await fetch('http://localhost:5000/api/products/get');
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const result= await response.json();
-    console.log("Fetched data:", result);
+      const response = await axios.get(
+        "http://localhost:8000/api/products/get"
+      );
 
-    if (result.success) {
-      // Set the products to the store
-      set({ products: result.data || [] });
-      console.log("Products stored:", result.data || []); // Log the products being stored
-    } else {
-      console.error("Failed to fetch products: ", result.message);
-    }
+      const result = response.data;
 
+      if (result.success) {
+        // Set the products to the store
+        set({ products: result.data || [] });
+        console.log("Products stored:", result.data || []); // Log the products being stored
+      } else {
+        console.error("Failed to fetch products: ", result.message);
+      }
     } catch (error) {
       console.error("Failed to fetch products:", error);
     }
   },
 
-   deleteProduct : async(pid) =>{
-    const res = await fetch(`http://localhost:5000/api/products/${pid}`,{
-      method:'DELETE',
-    });
-    const data = await res.json();
-
-    if(!data.success){
-      return {success:false,message:data.message};
-    }
-    //update the UI
-    set(state => ({products:state.products.filter(product => product._id !== pid)}));
-    return {success:true,message:data.message}
-   },
-
-   updateProduct : async(pid,updatedProduct) =>{
-
-    
-      const res = await fetch(`http://localhost:5000/api/products/${pid}`,{
-        method:'PUT',
-        headers:{
-          "Content-Type":"application/json",
-        },
-        body:JSON.stringify(updatedProduct)
-      });
-      const data = await res.json();
-      if(!data.success){
-        return {sucess:false,message:data.message}
+  deleteProduct: async (pid) => {
+    try {
+      const response = await axios.delete(`http://localhost:8000/api/products/${pid}`);
+      const result = response.data
+      if (result.success){
+        set((state) => ({
+          products: state.products.filter((product) => product._id !== pid),
+        }));
+        console.log("Product Deleted:",pid)
+        return{ success:true, message:"Product deleted successfully"}
+      }else{
+        return { sucess:false,message:"Failed to delete product"}
       }
+    } catch (error) {
+      console.error("Error in deleting product :",error)
+      return { success:false,message:"Internal server error "}
+    }
+  },
 
-      //updating the ui without needing to refresh
-      set(state => ({
-        products: state.products.map((product) => (product._id === pid ? data.data : product) ),
-      }))
-   }
-   
+  updateProduct: async (pid, updatedProduct) => {
+
+    try {
+      const response = await axios.put(`http://localhost:8000/api/products/${pid}`,updatedProduct);
+
+      const result = response.data
+
+      if (result.success){
+          //updating the ui without needing to refresh
+        set((state) => ({
+          products: state.products.map((product) =>
+            product._id === pid ? result.data : product
+          ),
+        }));
+        console.log("Updated Product",result.data)
+        return { success:true, message:"Updated the Product successfully"}
+      }else{
+          return { success:false, message:"Failed to update the product"}
+      }
+    } catch (error) {
+       console.error("Error in updating product",error)
+       return{return : false, message:"Internal server error"}
+    }   
+  }
+
+
 }));
 
-
-   // fetchProducts : async () =>{
-      //   const res = await fetch('http://localhost:5000/api/products/get');
-      //   const data = await res.json();
-      //   set({products:data.data});
-      // }
+// fetchProducts : async () =>{
+//   const res = await fetch('http://localhost:5000/api/products/get');
+//   const data = await res.json();
+//   set({products:data.data});
+// }

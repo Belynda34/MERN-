@@ -18,7 +18,7 @@ const __dirname = path.resolve();
 
 app.use("/api/products",productRoutes);
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8001;
 
 if(process.env.NODE_ENV === "production"){
     app.use(express.static(path.join(__dirname,"/frontend/dist")));
@@ -36,4 +36,4 @@ app.listen(PORT,()=> {
 })
 
 
-// 
+ 
